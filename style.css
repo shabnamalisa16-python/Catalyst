@@ -594,3 +594,41 @@ textarea:focus {
     50% { transform: scale(1.05); opacity: 0.8; }
     100% { transform: scale(1); opacity: 1; }
 }
+
+/* Score Pills */
+.score-summary-pills {
+    margin-top: 2rem;
+}
+
+.score-pill {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 160px;
+}
+
+.score-pill.active {
+    border-color: var(--primary);
+    background: rgba(56, 189, 248, 0.1);
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
+}
+
+.score-pill .label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.score-pill .value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    font-family: var(--font-heading);
+    color: var(--text-main);
+}
+
+.mt-1 { margin-top: 0.5rem; }
