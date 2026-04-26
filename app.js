@@ -7,6 +7,10 @@ let currentQuestionIndex = 0;
 let timerInterval = null;
 let timeLeft = 180; // 3 minutes in seconds
 let isVoiceActive = false;
+let performanceData = {}; // Track skill performance: { "Skill Name": score_out_of_100 }
+let initialMatchScore = 0;
+
+
 
 // Speech Setup
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -44,10 +48,23 @@ document.addEventListener("DOMContentLoaded", () => {
             updateTimerDisplay();
             if (timeLeft <= 0) {
                 clearInterval(timerInterval);
-                handleUserMessage("Time expired. I'll move to the next part.");
+                terminateAssessmentGracefully("Time has expired for this response. To respect your time, I'll conclude the assessment here and generate your personalized learning plan based on the information we've gathered so far.");
             }
         }, 1000);
     }
+
+    function terminateAssessmentGracefully(reason) {
+        stopTimer();
+        addMessage(reason, "agent");
+        chatHistory.push({ role: "assistant", content: reason });
+        speak(reason);
+        
+        document.querySelector(".chat-input-area").style.display = "none";
+        finishBtn.classList.remove("hidden");
+        timerDisplay.style.display = "none";
+        progressFill.style.width = "100%";
+    }
+
 
     function stopTimer() {
         clearInterval(timerInterval);
@@ -198,12 +215,26 @@ Skills: React, JavaScript, HTML, CSS, Redux, Git, Tailwind CSS.`;
                     if (systemPrompt.includes("missing skills")) {
                         resolve("Next.js/SSR, TypeScript, CI/CD");
                     } else if (systemPrompt.includes("learning plan")) {
+                        // Extract performance data from userPrompt if present
+                        let scores = { "Next.js / SSR": 20, "TypeScript": 30, "CI/CD": 10 };
+                        try {
+                            const perfMatch = userPrompt.match(/Interview Performance Data: ({.*?})/);
+                            if (perfMatch) {
+                                const perf = JSON.parse(perfMatch[1]);
+                                // Map interviewer topics to plan skill names
+                                if (perf["Next.js"]) scores["Next.js / SSR"] = perf["Next.js"];
+                                if (perf["Testing"]) scores["TypeScript"] = perf["Testing"]; // Mock assumes testing maps to TS for this demo
+                                if (perf["CI/CD"]) scores["CI/CD"] = perf["CI/CD"];
+                            }
+                        } catch (e) { console.error("Mock parse error", e); }
+
                         resolve(JSON.stringify({
                             gaps: [
-                                { skill: "Next.js / SSR", current: 20, target: 80, isGap: true },
-                                { skill: "TypeScript", current: 30, target: 90, isGap: true },
-                                { skill: "CI/CD", current: 10, target: 60, isGap: true }
+                                { skill: "Next.js / SSR", current: scores["Next.js / SSR"], target: 80, isGap: true },
+                                { skill: "TypeScript", current: scores["TypeScript"], target: 90, isGap: true },
+                                { skill: "CI/CD", current: scores["CI/CD"], target: 60, isGap: true }
                             ],
+
                             adjacent: [
                                 { name: "Next.js", from: "React.js", reason: "Natural progression" },
                                 { name: "TypeScript", from: "JavaScript", reason: "Adds static typing" }
@@ -305,7 +336,12 @@ Skills: React, JavaScript, HTML, CSS, Redux, Git, Tailwind CSS.`;
             currentGaps = gapAnalysis.split(",").map(s => s.trim());
             console.log("Identified Gaps:", currentGaps);
 
+            // Initial Match Score Calculation (Mock Heuristic)
+            initialMatchScore = Math.max(40, 100 - (currentGaps.length * 12)); 
+            document.getElementById("initial-score-display").textContent = `${initialMatchScore}%`;
+
             chatHistory = [
+
                 { role: "system", content: `You are AssessPal, a technical proficiency assessor. The candidate's resume shows they lack or are weak in the following skills required by the job: ${currentGaps.join(", ")}. Conduct a short interview (max 3 questions) to assess their real proficiency on these specific gaps. Ask one question at a time. Be conversational but technically rigorous. If they answer well, acknowledge it. If not, note it. Start by welcoming them and asking the first question.` }
             ];
 
@@ -343,8 +379,10 @@ The JSON must have this structure:
 Respond ONLY with valid JSON.`;
 
             const transcript = chatHistory.filter(m => m.role !== 'system').map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n");
+            const performanceStr = JSON.stringify(performanceData);
             
-            let jsonString = await callLLM(systemPrompt, `Transcript:\n${transcript}`);
+            let jsonString = await callLLM(systemPrompt, `Interview Performance Data: ${performanceStr}\n\nTranscript:\n${transcript}`);
+
             jsonString = jsonString.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
             finalPlan = JSON.parse(jsonString);
 
@@ -461,18 +499,26 @@ Respond ONLY with valid JSON.`;
                     const hasNegative = negatives.some(n => userText.includes(n));
                     
                     let reply = "";
+                    let numericalScore = 0;
+                    const topic = currentQuestionIndex === 1 ? "Next.js" : currentQuestionIndex === 2 ? "Testing" : "CI/CD";
+
                     if (hasNegative || (keywordCount === 0 && text.length < 50)) {
-                        reply = currentMock.bad; // Zero Score for vague/negative answers
+                        reply = currentMock.bad;
+                        numericalScore = 10; // Minimum baseline
                     } else if (keywordCount >= 1 && text.length > 40) {
-                        reply = currentMock.good; // High Score for technical answers with depth
+                        reply = currentMock.good;
+                        numericalScore = 85 + (keywordCount * 2); // High score
                     } else {
                         // Partial Match
-                        const score = 5 + (keywordCount * 2);
-                        reply = `That's a fair start, but I'd like to see more technical depth. I'd rate this a **${Math.min(score, 8)}/10**. Let's move on.`;
+                        numericalScore = 40 + (keywordCount * 10);
+                        reply = `That's a fair start, but I'd like to see more technical depth. I'd rate this a **${Math.floor(numericalScore/10)}/10**. Let's move on.`;
                         if (currentQuestionIndex === 1) reply += " How would you handle testing React components?";
                         if (currentQuestionIndex === 2) reply += " What do you know about CI/CD pipelines?";
-                        if (currentQuestionIndex === 3) reply = `Your overall assessment rating is **B (80%)**. You have shown good technical awareness.`;
+                        if (currentQuestionIndex === 3) reply = `Your overall assessment rating is **B (${Math.min(numericalScore, 100)}%)**. You have shown good technical awareness.`;
                     }
+                    
+                    performanceData[topic] = Math.min(numericalScore, 100);
+
                     
                     chatHistory.push({ role: "assistant", content: reply });
                     addMessage(reply, "agent");
@@ -501,7 +547,15 @@ Respond ONLY with valid JSON.`;
     }
 
     function renderDashboard(plan) {
+        // Update Score Pills
+        const scores = Object.values(performanceData);
+        const avgVerified = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+        
+        document.getElementById("final-initial-score").textContent = `${initialMatchScore}%`;
+        document.getElementById("final-verified-score").textContent = `${avgVerified}%`;
+
         const gapContainer = document.getElementById("gap-analysis-list");
+
         gapContainer.innerHTML = '';
         
         (plan.gaps || []).forEach(g => {
