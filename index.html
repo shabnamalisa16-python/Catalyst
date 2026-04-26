@@ -90,11 +90,15 @@
                                 <i data-lucide="clock" style="width: 18px; height: 18px;"></i>
                                 <span>03:00</span>
                             </div>
+                            <div class="score-tracking mt-1" style="text-align: right; font-size: 0.8rem; color: var(--primary);">
+                                <span>Initial Match: <strong id="initial-score-display">--%</strong></span>
+                            </div>
                             <div style="margin-top: 0.5rem;">
                                 <span>Assessment Progress</span>
                                 <div class="progress-bar"><div class="progress-fill" id="chat-progress-fill" style="width: 10%;"></div></div>
                             </div>
                         </div>
+
                     </div>
                     
                     <div class="chat-messages" id="chat-messages">
@@ -117,7 +121,18 @@
                 <div class="dashboard-header">
                     <h2>Personalised Learning Plan</h2>
                     <p>Based on our assessment, here is your skill gap analysis and realistic path to acquiring the required skills.</p>
+                    <div class="score-summary-pills mt-2" style="display: flex; justify-content: center; gap: 1rem;">
+                        <div class="score-pill">
+                            <span class="label">Initial Resume Match</span>
+                            <span class="value" id="final-initial-score">--%</span>
+                        </div>
+                        <div class="score-pill active">
+                            <span class="label">Verified Proficiency</span>
+                            <span class="value" id="final-verified-score">--%</span>
+                        </div>
+                    </div>
                 </div>
+
 
                 <div class="dashboard-grid">
                     <!-- Gap Analysis -->
