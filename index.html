@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AssessPal | AI Skill Profiler</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i data-lucide="shield-check"></i>
+                <h1>AssessPal</h1>
+            </div>
+            <nav>
+                <button class="nav-btn active" id="nav-setup">Setup</button>
+                <button class="nav-btn disabled" id="nav-assessment">Assessment</button>
+                <button class="nav-btn disabled" id="nav-plan">Learning Plan</button>
+            </nav>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- STAGE 1: Setup (Inputs) -->
+            <section id="stage-setup" class="stage active">
+                <div class="hero">
+                    <h2>Assess Real Proficiency</h2>
+                    <p>AssessPal evaluates your technical skills, identifies critical gaps, and generates a personalised learning plan focused on adjacent skills you can realistically acquire—complete with curated resources and time estimates.</p>
+                </div>
+                
+
+
+                <div class="split-pane">
+                    <div class="input-card">
+                        <div class="card-header">
+                            <i data-lucide="briefcase"></i>
+                            <h3>Job Description</h3>
+                        </div>
+                        <textarea id="job-description" placeholder="Paste the target Job Description here..."></textarea>
+                        <button class="load-sample-btn" id="load-sample-jd">Load Sample JD</button>
+                    </div>
+
+                    <div class="input-card">
+                        <div class="card-header">
+                            <i data-lucide="file-text"></i>
+                            <h3>Candidate Resume</h3>
+                        </div>
+                        <div class="file-upload-area" id="resume-upload-area" style="border: 2px dashed var(--border); border-radius: 8px; padding: 2rem; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 150px; transition: border-color 0.3s ease; background: var(--background);">
+                            <i data-lucide="upload-cloud" style="width: 48px; height: 48px; color: var(--primary); margin-bottom: 1rem;"></i>
+                            <span style="font-weight: 500; margin-bottom: 0.5rem;" id="upload-text">Click to upload PDF resume</span>
+                            <span style="font-size: 0.8rem; color: var(--text-secondary);">or drag and drop</span>
+                            <input type="file" id="candidate-resume-file" accept="application/pdf" style="display: none;">
+                        </div>
+                        <textarea id="candidate-resume-text" placeholder="Or paste the candidate's Resume here..." style="display: none; margin-top: 1rem;"></textarea>
+                        <button class="load-sample-btn" id="load-sample-resume">Load Sample Resume (Text)</button>
+                    </div>
+                </div>
+
+                <div class="action-row">
+                    <button id="start-assessment-btn" class="primary-btn">
+                        Start AI Assessment
+                        <i data-lucide="arrow-right"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- STAGE 2: Chat Assessment -->
+            <section id="stage-assessment" class="stage hidden">
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <div class="agent-info">
+                            <div class="agent-avatar"><i data-lucide="bot"></i></div>
+                            <div>
+                                <h3>AssessPal Agent</h3>
+                                <span class="status">● Online</span>
+                            </div>
+                        </div>
+                        <div class="chat-progress">
+                            <div class="timer-display" id="response-timer">
+                                <i data-lucide="clock" style="width: 18px; height: 18px;"></i>
+                                <span>03:00</span>
+                            </div>
+                            <div style="margin-top: 0.5rem;">
+                                <span>Assessment Progress</span>
+                                <div class="progress-bar"><div class="progress-fill" id="chat-progress-fill" style="width: 10%;"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-messages" id="chat-messages">
+                        <!-- Messages will be injected here via JS -->
+                    </div>
+
+                    <div class="chat-input-area">
+                        <button id="voice-input-btn" class="icon-btn secondary-btn" title="Speak Answer"><i data-lucide="mic"></i></button>
+                        <textarea id="chat-input" placeholder="Type or speak your response here..."></textarea>
+                        <button id="send-msg-btn" class="icon-btn primary-btn"><i data-lucide="send"></i></button>
+                    </div>
+                    <div class="action-row mt-2">
+                        <button id="finish-assessment-btn" class="secondary-btn hidden">Generate Learning Plan</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STAGE 3: Learning Plan Dashboard -->
+            <section id="stage-plan" class="stage hidden">
+                <div class="dashboard-header">
+                    <h2>Personalised Learning Plan</h2>
+                    <p>Based on our assessment, here is your skill gap analysis and realistic path to acquiring the required skills.</p>
+                </div>
+
+                <div class="dashboard-grid">
+                    <!-- Gap Analysis -->
+                    <div class="dashboard-card col-span-2">
+                        <h3><i data-lucide="bar-chart-2"></i> Skill Gap Analysis</h3>
+                        <div class="skills-list" id="gap-analysis-list">
+                            <!-- Injected via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Adjacent Skills -->
+                    <div class="dashboard-card">
+                        <h3><i data-lucide="git-branch"></i> Pivot Opportunities</h3>
+                        <p class="text-sm">Skills you can easily acquire based on your existing knowledge.</p>
+                        <ul class="adjacent-skills" id="adjacent-skills-list">
+                            <!-- Injected via JS -->
+                        </ul>
+                    </div>
+
+                    <!-- Roadmap -->
+                    <div class="dashboard-card col-span-3">
+                        <h3><i data-lucide="map"></i> Recommended Learning Roadmap</h3>
+                        <div class="roadmap" id="learning-roadmap">
+                            <!-- Injected via JS -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-row mt-4">
+                    <button class="secondary-btn" onclick="location.reload()">Start New Assessment</button>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
